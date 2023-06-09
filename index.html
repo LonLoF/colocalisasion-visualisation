@@ -1,1 +1,135 @@
-<h1>Hello!</h1>
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+  <div id="plot"></div>
+
+  <script>
+		// Variant and gene ID
+		const variant = "chr1_109274570_A_G";
+		const geneId = "ENSG00000134243";
+		
+		// Function to fetch datasets
+		async function fetchDatasets(start) {
+		  const apiUrl = `https://wwwdev.ebi.ac.uk/eqtl/api/v2/datasets?quant_method=ge&size=1000&start=`;
+		  
+		  try {
+			const response = await fetch(apiUrl+ start);
+			const data = await response.json();
+			return { data, status: response.status };
+		  } catch (error) {
+			console.log("Error fetching datasets:", error);
+			return null;
+		  }
+		}
+
+		// Function to extract dataset IDs
+		function extractDatasetIds(datasets) {
+		  return datasets.map(dataset => dataset.dataset_id);
+		}
+
+		// Function to make API requests
+		async function makeApiRequest(dataset) {
+		  const apiUrl = `https://wwwdev.ebi.ac.uk/eqtl/api/v2/datasets/${dataset}/associations?start=0&variant=${variant}&gene_id=${geneId}`;
+
+		  try {
+			const response = await fetch(apiUrl);
+			const data = await response.json();
+			// Check if the response contains "No results" message
+			if (data && data.message && data.message === "No results") {
+			  console.log(`Skipping request for dataset ${dataset} due to no results.`);
+			  return null;
+			}
+
+			return data;
+		  } catch (error) {
+			console.log(`Error fetching data for dataset ${dataset}:`, error);
+			return null;
+		  }
+		}
+
+		// Function to generate table from API response
+		function generateTable(data) {
+		  const table = document.createElement("table");
+
+		  // Create table header
+		  const headerRow = table.insertRow();
+		  for (const key in data[0]) {
+			const headerCell = headerRow.insertCell();
+			headerCell.textContent = key;
+		  }
+
+		  // Create table rows
+		  data.forEach(item => {
+			const row = table.insertRow();
+			for (const key in item) {
+			  const cell = row.insertCell();
+			  cell.textContent = item[key];
+			}
+		  });
+
+		  // Append table to the document body
+		  document.body.appendChild(table);
+		}
+
+		// Function to create a scatter plot
+		function createPlot(data) {
+		  const xData = data.map(item => item.beta);
+		  const yData = data.map(item => item.nlog10p);
+
+		  const trace = {
+			x: xData,
+			y: yData,
+			mode: 'markers',
+			type: 'scatter'
+		  };
+
+		  const layout = {
+			title: 'Plot of nlog10p vs beta',
+			xaxis: { title: 'Beta' },
+			yaxis: { title: 'nlog10p' }
+		  };
+
+		  const plotData = [trace];
+		  Plotly.newPlot('plot', plotData, layout);
+		}
+
+		// Function to handle multiple API requests
+		async function handleApiRequests() {
+		  const datasetIds = [];
+		  const allData = [];
+		  
+		  let fetchIds = true;
+		  let nextIds = 0;
+		  while(fetchIds){
+			const {data, status} = await fetchDatasets(nextIds);
+			if (!data || status === 400) {
+			  fetchIds = false;
+			  break;
+			}
+			const ids = extractDatasetIds(data);
+			console.log(ids);
+			datasetIds.push(...ids);
+			nextIds += 1000;
+		  }
+		  
+		  console.log(datasetIds);
+			
+		  for (const dataset of datasetIds) {
+			const data = await makeApiRequest(dataset);
+			if (data) {
+			  allData.push(...data);
+			}
+		  }
+
+		  generateTable(allData);
+		  createPlot(allData);
+		}
+
+		// Call the function to start the API requests, table generation, and plot creation
+		handleApiRequests();
+	</script>
+</body>
+</html>
