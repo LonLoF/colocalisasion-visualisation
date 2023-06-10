@@ -1,135 +1,168 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <title>Bioinformatics Project</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+        }
+    </style>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/dt/dt-1.10.23/datatables.min.css"/>
 </head>
 <body>
-  <div id="plot"></div>
+<nav class="navbar navbar-light bg-light">
+    <a class="navbar-brand" href="#">Bioinformatics Project</a>
+    <a class="navbar-brand ml-auto" href="https://github.com/LonLoF/colocalisasion-visualisation" target="_blank">
+        <i class="fa fa-github fa-2x" aria-hidden="true"></i>
+    </a>
+</nav>
 
-  <script>
-		// Variant and gene ID
-		const variant = "chr1_109274570_A_G";
-		const geneId = "ENSG00000134243";
-		
-		// Function to fetch datasets
-		async function fetchDatasets(start) {
-		  const apiUrl = `https://wwwdev.ebi.ac.uk/eqtl/api/v2/datasets?quant_method=ge&size=1000&start=`;
-		  
-		  try {
-			const response = await fetch(apiUrl+ start);
-			const data = await response.json();
-			return { data, status: response.status };
-		  } catch (error) {
-			console.log("Error fetching datasets:", error);
-			return null;
-		  }
-		}
+<div class="container mt-5">
+    <div class="accordion" id="tools">
+        <div class="card">
+            <div class="card-header" id="geneVariantsHeader">
+                <h2 class="mb-0">
+                    <button class="btn btn-link btn-block text-left" type="button" data-toggle="collapse"
+                            data-target="#geneVariantsBody" aria-expanded="true" aria-controls="geneVariantsBody">
+                        Gene Variants expressions
+                    </button>
+                </h2>
+            </div>
+            <div id="geneVariantsBody" class="collapse show" aria-labelledby="geneVariantsHeader" data-parent="#tools">
+                <div class="card-body">
+                    <form id="geneVariantsForm">
+                        <div class="form-group">
+                            <label for="quantificationMethod">Quantification method</label>
+                            <select class="form-control" id="quantificationMethod">
+                                <option value="">----</option>
+                                <option value="ge" selected>ge</option>
+                                <option value="exon">exon</option>
+                                <option value="microarray">microarray</option>
+                                <option value="tx">tx</option>
+                                <option value="txrev">txrev</option>
+                                <option value="leafcutter">leafcutter</option>
+                                <option value="aptamer">aptamer</option>
+                            </select>
+                            <label for="tissueLabel">Tissue label</label>
+                            <input type="text" class="form-control" id="tissueLabel" placeholder="e.g. liver">
+                        </div>
 
-		// Function to extract dataset IDs
-		function extractDatasetIds(datasets) {
-		  return datasets.map(dataset => dataset.dataset_id);
-		}
+                        <div class="form-group">
+                            <label for="variantID">Variant ID</label>
+                            <input type="text" class="form-control" id="variantID" placeholder="e.g. chr1_109274570_A_G"
+                                   value="chr1_109274570_A_G">
+                            <label for="geneID">Gene ID</label>
+                            <input type="text" class="form-control" id="geneID" placeholder="e.g. ENSG00000134243"
+                                   value="ENSG00000134243">
+                        </div>
+                        <button id="geneVariantsQuery" class="btn btn-primary">Query</button>
+                    </form>
+                    <hr>
+                    <div id="geneVariantsPlot" style="display: none;"class="mt-5">
+                        <!-- Plot goes here -->
+                    </div>
+                    <div id="geneVariantsTable" style="display: none;" class="mt-5">
+                        <hr>
+                        <div class="form-group">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input toggle-vis" type="checkbox" data-column="2" id="nlog10p" checked>
+                                <label class="form-check-label" for="nlog10p">nlog10p</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input toggle-vis" type="checkbox" data-column="3" id="pvalue">
+                                <label class="form-check-label" for="pvalue">pvalue</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input toggle-vis" type="checkbox" data-column="4" id="molecular_trait_id">
+                                <label class="form-check-label" for="molecular_trait_id">molecular_trait_id</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input toggle-vis" type="checkbox" data-column="5" id="gene_id" checked>
+                                <label class="form-check-label" for="gene_id">gene_id</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input toggle-vis" type="checkbox" data-column="6" id="position">
+                                <label class="form-check-label" for="position">position</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input toggle-vis" type="checkbox" data-column="7" id="chromosome">
+                                <label class="form-check-label" for="chromosome">chromosome</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input toggle-vis" type="checkbox" data-column="8" id="ref">
+                                <label class="form-check-label" for="ref">ref</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input toggle-vis" type="checkbox" data-column="9" id="alt">
+                                <label class="form-check-label" for="alt">alt</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input toggle-vis" type="checkbox" data-column="10" id="type">
+                                <label class="form-check-label" for="type">type</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input toggle-vis" type="checkbox" data-column="11" id="variant" checked>
+                                <label class="form-check-label" for="variant">variant</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input toggle-vis" type="checkbox" data-column="12" id="rsid">
+                                <label class="form-check-label" for="rsid">rsid</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input toggle-vis" type="checkbox" data-column="13" id="ac">
+                                <label class="form-check-label" for="ac">ac</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input toggle-vis" type="checkbox" data-column="14" id="an">
+                                <label class="form-check-label" for="an">an</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input toggle-vis" type="checkbox" data-column="15" id="beta" checked>
+                                <label class="form-check-label" for="beta">beta</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input toggle-vis" type="checkbox" data-column="16" id="maf">
+                                <label class="form-check-label" for="maf">maf</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input toggle-vis" type="checkbox" data-column="17" id="median_tpm">
+                                <label class="form-check-label" for="median_tpm">median_tpm</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input toggle-vis" type="checkbox" data-column="18" id="r2">
+                                <label class="form-check-label" for="r2">r2</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input toggle-vis" type="checkbox" data-column="19" id="se">
+                                <label class="form-check-label" for="se">se</label>
+                            </div>
+                        </div>
 
-		// Function to make API requests
-		async function makeApiRequest(dataset) {
-		  const apiUrl = `https://wwwdev.ebi.ac.uk/eqtl/api/v2/datasets/${dataset}/associations?start=0&variant=${variant}&gene_id=${geneId}`;
+                        <table id="associationsTable" class="display" style="width:100%">
+                            <!-- DataTable goes here -->
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-		  try {
-			const response = await fetch(apiUrl);
-			const data = await response.json();
-			// Check if the response contains "No results" message
-			if (data && data.message && data.message === "No results") {
-			  console.log(`Skipping request for dataset ${dataset} due to no results.`);
-			  return null;
-			}
+</div>
 
-			return data;
-		  } catch (error) {
-			console.log(`Error fetching data for dataset ${dataset}:`, error);
-			return null;
-		  }
-		}
 
-		// Function to generate table from API response
-		function generateTable(data) {
-		  const table = document.createElement("table");
-
-		  // Create table header
-		  const headerRow = table.insertRow();
-		  for (const key in data[0]) {
-			const headerCell = headerRow.insertCell();
-			headerCell.textContent = key;
-		  }
-
-		  // Create table rows
-		  data.forEach(item => {
-			const row = table.insertRow();
-			for (const key in item) {
-			  const cell = row.insertCell();
-			  cell.textContent = item[key];
-			}
-		  });
-
-		  // Append table to the document body
-		  document.body.appendChild(table);
-		}
-
-		// Function to create a scatter plot
-		function createPlot(data) {
-		  const xData = data.map(item => item.beta);
-		  const yData = data.map(item => item.nlog10p);
-
-		  const trace = {
-			x: xData,
-			y: yData,
-			mode: 'markers',
-			type: 'scatter'
-		  };
-
-		  const layout = {
-			title: 'Plot of nlog10p vs beta',
-			xaxis: { title: 'Beta' },
-			yaxis: { title: 'nlog10p' }
-		  };
-
-		  const plotData = [trace];
-		  Plotly.newPlot('plot', plotData, layout);
-		}
-
-		// Function to handle multiple API requests
-		async function handleApiRequests() {
-		  const datasetIds = [];
-		  const allData = [];
-		  
-		  let fetchIds = true;
-		  let nextIds = 0;
-		  while(fetchIds){
-			const {data, status} = await fetchDatasets(nextIds);
-			if (!data || status === 400) {
-			  fetchIds = false;
-			  break;
-			}
-			const ids = extractDatasetIds(data);
-			console.log(ids);
-			datasetIds.push(...ids);
-			nextIds += 1000;
-		  }
-		  
-		  console.log(datasetIds);
-			
-		  for (const dataset of datasetIds) {
-			const data = await makeApiRequest(dataset);
-			if (data) {
-			  allData.push(...data);
-			}
-		  }
-
-		  generateTable(allData);
-		  createPlot(allData);
-		}
-
-		// Call the function to start the API requests, table generation, and plot creation
-		handleApiRequests();
-	</script>
+<!-- jQuery library -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- DataTables JS library -->
+<script type="text/javascript" src="https://cdn.datatables.net/v/dt/dt-1.10.23/datatables.min.js"></script>
+<!-- Bootstrap JS library -->
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.bundle.min.js"></script>
+<!-- Plotly JS library -->
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<!-- Your custom JavaScript files -->
+<script src="js/utility.js"></script>
+<script src="js/geneVariants.js"></script>
 </body>
 </html>
