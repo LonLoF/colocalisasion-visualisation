@@ -72,6 +72,8 @@ function generateTable(associationsData, datasets) {
         $('#associationsTable').DataTable().destroy();
     }
 
+    $('#geneVariantsTable').show();
+
     // Create the DataTable
     var table = $('#associationsTable').DataTable({
         "data": dataTableData,
@@ -138,8 +140,6 @@ function generateTable(associationsData, datasets) {
             expandCollapseIcon.addClass('fa fa-minus-square text-danger'); // Add minus icon
         }
     });
-
-    $('#geneVariantsTable').show();
 }
 
 // Helper function to format the dataset information
@@ -165,6 +165,8 @@ function format(datasetInfo) {
 }
 
 function createPlot(associationsData) {
+    if (!associationsData.length) return;
+
     var betaValues = associationsData.map(function (obj) {
         return obj.beta;
     });
@@ -201,8 +203,9 @@ function createPlot(associationsData) {
         }
     };
 
-    Plotly.newPlot('geneVariantsPlot', data, layout);
     $('#geneVariantsPlot').show();
+    $('#geneVariantsPlotTableSeparator').show();
+    Plotly.newPlot('geneVariantsPlot', data, layout, {responsive: true});
 }
 
 document.getElementById('geneVariantsForm').addEventListener('submit', function (event) {
@@ -211,6 +214,7 @@ document.getElementById('geneVariantsForm').addEventListener('submit', function 
     // Hide old data
     $('#geneVariantsPlot').hide();
     $('#geneVariantsTable').hide();
+    $('#geneVariantsPlotTableSeparator').hide();
 
     // Get the form values
     const quantificationMethod = document.getElementById('quantificationMethod').value;
